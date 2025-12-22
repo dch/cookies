@@ -1,0 +1,57 @@
+FROM ghcr.io/freebsd/freebsd-toolchain:15.0
+
+# Build arguments for version information
+ARG VERSION=0.0.0
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE
+
+# OCI standard labels
+LABEL org.opencontainers.image.title="base"
+LABEL org.opencontainers.image.description="base image"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${GIT_COMMIT}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+
+ENV IGNORE_OSVERSION=yes
+ENV ASSUME_ALWAYS_YES=yes
+
+# Bootstrap and upgrade
+RUN rm -f /usr/local/etc/pkg/repos/*.conf
+COPY ./etc/FreeBSD.conf /usr/local/etc/pkg/repos/
+RUN pkg update -f
+RUN pkg upgrade -Uy
+
+# Install required packages
+RUN pkg install -y \
+    FreeBSD-bsdconfig \
+    databases/postgresql18-client \
+    databases/postgresql18-contrib \
+    databases/postgresql18-server \
+    devel/esbuild \
+    devel/git@tiny \
+    devel/gmake \
+    lang/elixir-devel \
+    lang/erlang-runtime28 \
+    security/ca_root_nss \
+    sysutils/fd \
+    sysutils/tmux \
+    sysutils/ttyd \
+    www/npm-node24 \
+    www/tailwindcss4
+
+# node
+RUN corepack enable
+
+# ttyd
+RUN sysrc ttyd_enable=YES
+RUN sysrc ttyd_acct=root
+RUN sysrc ttyd_args='--writable --interface /var/run/rx/ttyd.sock --cwd /opt -b /console'
+RUN sysrc ttyd_exec='/usr/local/bin/tmux -u new -A'
+
+# postgresql
+RUN sysrc postgresql_class=postgres
+RUN sysrc postgresql_enable=YES
+RUN echo postgres::lang=en_US.UTF-8::setenv=LC_COLLATE=C::tc=default: | tee -a /etc/login.conf
+RUN cap_mkdb /etc/login.conf
+RUN mkdir -p /var/db/postgres
+RUN chown -R postgres:postgres /var/db/postgres
