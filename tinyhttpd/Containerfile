@@ -1,0 +1,5 @@
+FROM ghcr.io/freebsd/freebsd-notoolchain:15.0
+COPY httpd.sh /usr/bin/httpd.sh
+COPY inetd.conf /etc/inetd.conf
+EXPOSE 80
+ENTRYPOINT ["/usr/sbin/inetd", "-d", "-l"]
