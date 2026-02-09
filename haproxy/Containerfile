@@ -3,7 +3,6 @@ RUN rm /usr/local/etc/pkg/repos/base.conf
 ENV ASSUME_ALWAYS_YES=yes
 RUN pkg update -f
 RUN pkg install -yr FreeBSD-ports haproxy-lua
-RUN rm -rf /var/cache/pkg /var/db/pkg
 COPY haproxy.conf /usr/local/etc/haproxy.conf
 EXPOSE 4000
 ENTRYPOINT ["/usr/local/sbin/haproxy", "-d", "-db", "-V", "-f", "/usr/local/etc/haproxy.conf"]
